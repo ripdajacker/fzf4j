@@ -22,14 +22,13 @@
 
 package de.gesundkrank.fzf4j.matchers;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import de.gesundkrank.fzf4j.Normalizer;
 import de.gesundkrank.fzf4j.models.OrderBy;
 import de.gesundkrank.fzf4j.models.Result;
 import de.gesundkrank.fzf4j.utils.ResultComparator;
-
-import java.util.ArrayList;
-import java.util.List;
-
 
 /**
  * Class to filter and rank and items
