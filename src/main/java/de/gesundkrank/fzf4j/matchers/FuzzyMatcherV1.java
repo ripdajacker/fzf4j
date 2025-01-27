@@ -22,14 +22,13 @@
 
 package de.gesundkrank.fzf4j.matchers;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import de.gesundkrank.fzf4j.Normalizer;
 import de.gesundkrank.fzf4j.models.OrderBy;
 import de.gesundkrank.fzf4j.models.Result;
 import de.gesundkrank.fzf4j.utils.ResultComparator;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -68,21 +67,30 @@ public class FuzzyMatcherV1 {
     }
 
     public List<Result> match(final String pattern) {
+        int size = items.size();
+        List<Result> results = new ArrayList<>(size);
         if (pattern.isEmpty()) {
-            return IntStream.range(0, items.size()).parallel()
-                    .mapToObj(i -> Result.empty(items.get(i), i))
-                    .collect(Collectors.toList());
+            for (int i = 0; i < size; i++) {
+                String item = items.get(i);
+                results.add(Result.empty(item, i));
+            }
+
+        } else {
+            final var lowercasePattern = caseSensitive ? pattern : pattern.toLowerCase();
+            final var normalizedPattern = normalize ? Normalizer.normalize(lowercasePattern)
+                    : lowercasePattern;
+
+            for (int i = 0; i < size; i++) {
+                Result match = match(items.get(i), normalizedItems.get(i), normalizedPattern, i);
+                if (match.isMatch()) {
+                    results.add(match);
+                }
+            }
+
+            results.sort(new ResultComparator(orderBy));
         }
 
-        final var lowercasePattern = caseSensitive ? pattern : pattern.toLowerCase();
-        final var normalizedPattern = normalize ? Normalizer.normalize(lowercasePattern)
-                                                : lowercasePattern;
-
-        return IntStream.range(0, items.size()).parallel()
-                .mapToObj(i -> match(items.get(i), normalizedItems.get(i), normalizedPattern, i))
-                .filter(Result::isMatch)
-                .sorted(new ResultComparator(orderBy))
-                .collect(Collectors.toList());
+        return results;
     }
 
     private Result match(
@@ -157,7 +165,7 @@ public class FuzzyMatcherV1 {
         var pos = new int[pattern.length()];
 
         var prevClass = startIndex > 0 ? CharClass.forChar(normalizedText.charAt(startIndex - 1))
-                                       : CharClass.NON_WORD;
+                : CharClass.NON_WORD;
 
         for (var i = startIndex; i < endIndex; i++) {
             var c = normalizedText.charAt(i);
@@ -212,7 +220,7 @@ public class FuzzyMatcherV1 {
         if (prevClass == CharClass.NON_WORD && charClass != CharClass.NON_WORD) {
             return BONUS_BOUNDARY;
         } else if (prevClass == CharClass.LOWER && charClass == CharClass.UPPER
-                   || prevClass != CharClass.NUMBER && charClass == CharClass.NUMBER) {
+                || prevClass != CharClass.NUMBER && charClass == CharClass.NUMBER) {
             // camelCase letter123
             return BONUS_CAMEL_123;
         } else if (charClass == CharClass.NON_WORD) {
